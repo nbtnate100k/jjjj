@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.gstatic.com https://www.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: https:; connect-src 'self' http://localhost:5000 https://*.railway.app https://*.github.io https://*.firebaseio.com https://*.googleapis.com;">
+    <!-- If the shop HTML is hosted separately from the bot, set your Flask API origin here (e.g. Railway):
+         <meta name="pluxo-api-base" content="https://your-app.up.railway.app">
+         Or one-time: https://www.pluxo.net/?pluxo_api=https://your-app.up.railway.app -->
+    <meta name="pluxo-api-base" content="https://web-production-a182.up.railway.app">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.gstatic.com https://www.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net; img-src 'self' data: https:; connect-src 'self' http://localhost:5000 https://www.pluxo.net https://pluxo.net https://*.railway.app https://*.up.railway.app https://*.github.io https://*.firebaseio.com https://*.googleapis.com;">
     <title>Pluxo</title>
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flag-icons@7.2.3/css/flag-icons.min.css">
@@ -5481,7 +5485,7 @@
                     <div class="admin-section">
                         <div class="section-title">Load Balance by UID (Alternative Method)</div>
                         <div class="admin-form" style="flex-direction: column; gap: 12px;">
-                            <input type="text" class="input-field" id="loadBalanceUID" placeholder="Enter Firebase UID (e.g., OwspBlmNctZqbjgJ1AKdg2hUx3a2)">
+                            <input type="text" class="input-field" id="loadBalanceUID" placeholder="UID lookup disabled — use username above">
                             <input type="number" class="input-field" id="loadBalanceAmountUID" placeholder="Enter amount to load" step="0.01" min="0">
                             <button class="btn btn-admin" onclick="loadUserBalanceByUID()" style="background: #3b82f6; width: 100%;">Load Balance by UID</button>
                             <small style="color: var(--gray); font-size: 12px; margin-top: -8px;">Use this if username method doesn't work</small>
@@ -5909,7 +5913,7 @@
                 <!-- Step 3: Payment Details Form -->
                 <div id="fundsStep3" class="funds-step" style="display: none;">
                     <h2 style="font-family: 'Syne', sans-serif; font-size: 32px; margin-bottom: 12px; background: linear-gradient(135deg, var(--white) 0%, var(--blue-light) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Payment Details</h2>
-                    <form onsubmit="event.preventDefault(); markAsPaid();">
+                    <form onsubmit="event.preventDefault(); markAsPaid(); return false;">
                         <input type="hidden" id="payMethod" value="">
                         <input type="hidden" id="fundAmt" value="">
                         <div class="form-group">
@@ -5928,7 +5932,19 @@
                             <div style="font-weight: 600; margin-bottom: 8px; color: var(--blue);">Payment Instructions:</div>
                             <div id="instructionText" style="font-size: 14px; color: var(--gray); line-height: 1.5;"></div>
                         </div>
-                        <button type="button" class="btn btn-primary" style="width:100%; background: linear-gradient(135deg, #22c55e, #16a34a); font-size: 18px; font-weight: 700; padding: 16px;" onclick="markAsPaid()">✓ I Have Paid</button>
+                        <div class="form-group">
+                            <label>Account password</label>
+                            <input type="password" class="input-field" id="fundSubmitPassword" placeholder="Required to submit this request" autocomplete="current-password">
+                        </div>
+                        <div class="form-group">
+                            <label>Payment proof (optional)</label>
+                            <input type="file" class="input-field" id="paymentProof" accept="image/*,application/pdf" onchange="handlePaymentProof(event)">
+                            <div id="uploadArea" style="display: none;"></div>
+                            <div id="proofPreview" style="display: none; margin-top: 12px;">
+                                <img id="previewImage" alt="Proof preview" style="max-width: 100%; border-radius: 8px;">
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-primary" style="width:100%; background: linear-gradient(135deg, #22c55e, #16a34a); font-size: 18px; font-weight: 700; padding: 16px;" onclick="markAsPaid()">✓ Submit deposit request</button>
                     </form>
                 </div>
             </div>
@@ -6063,6 +6079,33 @@
     </div>
 
     <script>
+        function showAnimatedPopup(title, message, type = 'info') {
+            const overlay = document.getElementById('animatedPopupOverlay');
+            const popup = document.getElementById('animatedPopup');
+            const icon = document.getElementById('popupIcon');
+            const titleEl = document.getElementById('popupTitle');
+            const messageEl = document.getElementById('popupMessage');
+            if (!overlay || !popup) { alert(message); return; }
+            const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
+            icon.textContent = icons[type] || '✨';
+            titleEl.textContent = title;
+            messageEl.textContent = message;
+            popup.className = 'animated-popup ' + type;
+            overlay.style.display = 'flex';
+        }
+        function closeAnimatedPopup() {
+            const overlay = document.getElementById('animatedPopupOverlay');
+            if (overlay) overlay.style.display = 'none';
+        }
+        window.showAnimatedPopup = showAnimatedPopup;
+        window.closeAnimatedPopup = closeAnimatedPopup;
+        function shakeElement(element) {
+            if (!element) return;
+            element.classList.add('shake');
+            setTimeout(() => element.classList.remove('shake'), 500);
+        }
+        window.shakeElement = shakeElement;
+
         // State
         let userData = JSON.parse(localStorage.getItem('pluxoUser')) || null;
         let captchaAnswer = 12;
@@ -6187,17 +6230,76 @@
         window.showDashboard = showDashboard;
         window.showLogin = showLogin;
 
-        // Bot API Config - Set your Railway API URL here
-        // If hosting website separately from API, set RAILWAY_API_URL to your Railway deployment
-        var RAILWAY_API_URL = 'https://web-production-8c20.up.railway.app';  // Railway bot API URL
-        
-        var BOT_WEBHOOK_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') 
-            ? 'http://localhost:5000' 
-            : (RAILWAY_API_URL || window.location.origin);  // Uses RAILWAY_API_URL if set, otherwise same origin
+        // Bot API base URL (no trailing slash). Resolved by trying /api/products on each candidate (see _pluxoApiDiscovery).
+        var PLUXO_API_URL = '';
+
+        function getApiUrlCandidates() {
+            var out = [];
+            function add(u) {
+                if (!u || typeof u !== 'string') return;
+                u = u.replace(/\/$/, '').trim();
+                if (!u || out.indexOf(u) !== -1) return;
+                out.push(u);
+            }
+            try {
+                var q = new URLSearchParams(window.location.search).get('pluxo_api');
+                if (q) {
+                    localStorage.setItem('pluxo_api_base', q);
+                    add(q);
+                }
+            } catch (e) {}
+            var meta = document.querySelector('meta[name="pluxo-api-base"]');
+            if (meta) {
+                var c = (meta.getAttribute('content') || '').trim();
+                if (c) add(c);
+            }
+            if (typeof window.__PLUXO_API_URL__ === 'string' && window.__PLUXO_API_URL__.trim())
+                add(window.__PLUXO_API_URL__.trim());
+            if (typeof PLUXO_API_URL === 'string' && PLUXO_API_URL.trim())
+                add(PLUXO_API_URL.trim());
+            try {
+                var s = localStorage.getItem('pluxo_api_base');
+                if (s) add(s);
+            } catch (e) {}
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+                add('http://localhost:5000');
+            else
+                add(window.location.origin);
+            return out;
+        }
+
+        var BOT_WEBHOOK_URL = getApiUrlCandidates()[0] || window.location.origin.replace(/\/$/, '');
         var WEBHOOK_SECRET = 'pluxo_secret_2024';
-        console.log('API URL:', BOT_WEBHOOK_URL);
+
+        var _pluxoApiDiscovery = (function () {
+            return (async function resolvePluxoApi() {
+                var candidates = getApiUrlCandidates();
+                for (var i = 0; i < candidates.length; i++) {
+                    var base = candidates[i];
+                    try {
+                        var r = await fetch(base + '/api/products');
+                        if (!r.ok) continue;
+                        var ct = (r.headers.get('content-type') || '').toLowerCase();
+                        if (ct.indexOf('json') === -1) continue;
+                        var j = await r.json().catch(function () { return null; });
+                        if (Array.isArray(j)) {
+                            BOT_WEBHOOK_URL = base;
+                            console.log('[Pluxo] API:', base, '(' + j.length + ' products)');
+                            return base;
+                        }
+                    } catch (err) {}
+                }
+                console.warn(
+                    '[Pluxo] No working /api/products. Host the bot+Flask on this domain, or set <meta name="pluxo-api-base" content="https://your-api-host"> or ?pluxo_api='
+                );
+                return null;
+            })();
+        })();
+
+        console.log('API URL (initial):', BOT_WEBHOOK_URL);
 
         async function gamesApi(path, method = 'GET', body = null) {
+            await _pluxoApiDiscovery;
             const options = {
                 method: method,
                 headers: {
@@ -6221,30 +6323,13 @@
             // Update UI immediately with localStorage data for instant display
             updateUI();
             
-            // Always try to load balance from Firestore (works even without firebaseUID by using username)
-            // Load balance first (most important), then orders
+            // Balance + orders from Pluxo bot API (admin_users.json / site_orders.json)
             loadUserBalanceFromFirestore().then(() => {
-                // Load orders if Firebase UID exists
-                if (userData.firebaseUID) {
-                    loadOrdersFromFirestore().then(() => {
-                        showDashboard();
-                    }).catch(() => {
-                        showDashboard();
-                    });
-                } else {
-                    showDashboard();
-                }
+                return loadOrdersFromFirestore();
+            }).then(() => {
+                showDashboard();
             }).catch(() => {
-                // If balance load fails, still show dashboard
-                if (userData.firebaseUID) {
-                    loadOrdersFromFirestore().then(() => {
-                        showDashboard();
-                    }).catch(() => {
-                        showDashboard();
-                    });
-                } else {
-                    showDashboard();
-                }
+                showDashboard();
             });
         } else {
             showLogin();
@@ -6273,42 +6358,7 @@
         function openRegister() { document.getElementById('registerModal').classList.add('active'); }
         function closeRegister() { document.getElementById('registerModal').classList.remove('active'); }
 
-        document.getElementById('registerForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const user = document.getElementById('regUser').value.trim();
-            const email = document.getElementById('regEmail').value.trim();
-            const pass = document.getElementById('regPass').value;
-            const passC = document.getElementById('regPassConfirm').value;
-
-            if (pass !== passC) { showAnimatedPopup('Error', 'Passwords do not match', 'error'); return; }
-            if (pass.length < 6) { showAnimatedPopup('Error', 'Password must be at least 6 characters', 'error'); return; }
-
-            const users = JSON.parse(localStorage.getItem('pluxoUsers')) || {};
-            if (users[user]) { showAnimatedPopup('Error', 'Username taken', 'error'); return; }
-
-            users[user] = { email, pass };
-            localStorage.setItem('pluxoUsers', JSON.stringify(users));
-            
-            // Notify bot API about new registration
-            try {
-                const response = await fetch(BOT_WEBHOOK_URL + '/api/register', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Webhook-Secret': WEBHOOK_SECRET
-                    },
-                    body: JSON.stringify({ username: user.toLowerCase(), email: email })
-                });
-                const data = await response.json();
-                console.log('User registered with bot:', data);
-            } catch (err) {
-                console.log('Bot notification skipped:', err.message);
-            }
-            
-            showAnimatedPopup('Success', 'Account created! You can now sign in.', 'success');
-            closeRegister();
-            document.getElementById('username').value = user;
-        });
+        // Registration is handled by Pluxo API auth (bottom script).
 
         // OLD LOGIN HANDLER DISABLED - Now using Firebase authentication
         // This handler was auto-registering users and bypassing Firebase auth
@@ -6592,123 +6642,98 @@
             renderBalanceRequests();
         }
         
-        // Load and render balance requests for admin
+        // Load and render balance requests for admin (Pluxo API / site_balance_requests.json)
         async function renderBalanceRequests() {
             if (!isAdmin(userData?.username)) {
                 const requestsEl = document.getElementById('balanceRequestsDisplay');
                 if (requestsEl) requestsEl.innerHTML = '';
                 return;
             }
-            
             const requestsEl = document.getElementById('balanceRequestsDisplay');
             if (!requestsEl) return;
-            
-            // Check if db is available
-            const firestoreDb = window.db;
-            const firestore = window.firestoreFunctions;
-            
-            if (!firestoreDb || !firestore) {
-                requestsEl.innerHTML = '<p style="color: var(--gray);">Loading...</p>';
-                return;
-            }
-            
+            requestsEl.innerHTML = '<p style="color: var(--gray);">Loading requests…</p>';
+            await _pluxoApiDiscovery;
             try {
-                const { collection, query, where, getDocs, orderBy } = firestore;
-                const requestsRef = collection(firestoreDb, 'balanceRequests');
-                // Try query with orderBy, if it fails, try without orderBy
-                let querySnapshot;
-                try {
-                    const q = query(requestsRef, where('status', '==', 'pending'), orderBy('createdAt', 'desc'));
-                    querySnapshot = await getDocs(q);
-                } catch (orderByError) {
-                    // If orderBy fails (might need index), try without it
-                    console.log('OrderBy failed, trying without:', orderByError);
-                    const q = query(requestsRef, where('status', '==', 'pending'));
-                    querySnapshot = await getDocs(q);
+                const res = await fetch(BOT_WEBHOOK_URL + '/api/admin/balance-requests', {
+                    headers: { 'X-Webhook-Secret': WEBHOOK_SECRET }
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.success) {
+                    throw new Error(data.error || 'API error');
                 }
-                
-                const requests = [];
-                querySnapshot.forEach((doc) => {
-                    requests.push({ id: doc.id, ...doc.data() });
+                const list = (data.requests || []).filter(r => r.status === 'pending');
+                if (list.length === 0) {
+                    requestsEl.innerHTML = '<p style="color: var(--gray);">No pending balance requests.</p>';
+                    return;
+                }
+                const proofById = {};
+                list.forEach(r => {
+                    if (r.paymentProofDataUrl && String(r.paymentProofDataUrl).startsWith('data:')) {
+                        proofById[r.id] = r.paymentProofDataUrl;
+                    }
                 });
-                
-                // Sort manually if orderBy failed
-                requests.sort((a, b) => {
-                    const dateA = new Date(a.createdAt || 0);
-                    const dateB = new Date(b.createdAt || 0);
-                    return dateB - dateA;
-                });
-                
-                if (requests.length === 0) {
-                    requestsEl.innerHTML = '<p style="color: var(--gray);">No pending balance requests</p>';
-                } else {
-                    // Security: Sanitize all request data before rendering
-                    requestsEl.innerHTML = requests.map(req => {
-                        const safeId = sanitizeInput(req.id || '');
-                        const safeUsername = sanitizeInput(req.username || 'Unknown');
-                        const safeUserId = sanitizeInput(req.userId || '');
-                        const safeAmount = parseFloat(req.amount || 0).toFixed(2);
-const safePaymentMethod = sanitizeInput(req.paymentMethod || 'N/A');
-                        const safeBonusCode = req.bonusCode ? sanitizeInput(req.bonusCode) : '';
-                        const safeCreatedAt = req.createdAt ? new Date(req.createdAt).toLocaleString() : 'N/A';
-                        const safeProofUrl = sanitizeInput(req.paymentProofUrl || '');
-                        const safeProofFileName = sanitizeInput(req.paymentProofFileName || '');
-                        
-                        // Create request details object for modal
-                        const requestDetails = {
-                            username: safeUsername,
-                            amount: safeAmount,
-                            paymentMethod: safePaymentMethod,
-                            createdAt: req.createdAt
-                        };
-                        
-                        // Security: Escape quotes in onclick handlers
-                        const safeApproveOnClick = `approveBalanceRequest('${safeId.replace(/'/g, "\\'")}', '${safeUserId.replace(/'/g, "\\'")}', ${safeAmount}, '${safeUsername.replace(/'/g, "\\'")}')`;
-                        const safeRejectOnClick = `rejectBalanceRequest('${safeId.replace(/'/g, "\\'")}')`;
-                        const safeReviewProofOnClick = `openProofReviewModal('${safeId.replace(/'/g, "\\'")}', '${safeProofUrl.replace(/'/g, "\\'")}', ${JSON.stringify(requestDetails).replace(/'/g, "\\'")})`;
-                        
-                        return `
-                            <div class="balance-request-item">
-                                <div class="request-header">
-                                    <div class="request-user-info">
-                                        <div style="font-weight: 600; font-size: 16px; margin-bottom: 4px;">${safeUsername}</div>
-                                        <div class="request-meta">
-                                            <div>Request ID: ${safeId}</div>
-                                            <div>${safeCreatedAt}</div>
-                                        </div>
-                                    </div>
-                                    <div class="request-amount">
-                                        <div class="amount">$${safeAmount}</div>
-                                        <div class="method">${safePaymentMethod}</div>
-                                    </div>
-                                </div>
-                                ${safeBonusCode ? `<div style="margin-bottom: 12px; font-size: 13px; color: var(--gray);">Bonus Code: <strong>${safeBonusCode}</strong></div>` : ''}
-                                ${safeProofUrl ? `
-                                    <div class="request-proof">
-                                        <div class="request-proof-label">Payment Proof</div>
-                                        <div style="display: flex; align-items: center; gap: 12px;">
-                                            <img src="${safeProofUrl}" alt="Payment Proof" class="proof-thumbnail" onclick="window.open('${safeProofUrl}', '_blank')">
-                                            <div>
-                                                <div style="font-size: 12px; color: var(--gray);">${safeProofFileName}</div>
-                                                <button class="btn-review-proof" onclick="${safeReviewProofOnClick}">Review Full Proof</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ` : ''}
-                                <div class="request-actions">
-                                    <button class="btn-approve" onclick="${safeApproveOnClick}">Approve</button>
-                                    <button class="btn-reject" onclick="${safeRejectOnClick}">Reject</button>
+                requestsEl.innerHTML = list.map(r => {
+                    const safeUser = sanitizeInput(r.username || '');
+                    const amt = parseFloat(r.amount);
+                    const safeAmt = isNaN(amt) ? '—' : amt.toFixed(2);
+                    const method = sanitizeInput(r.paymentMethod || '');
+                    const rid = String(r.id || '');
+                    const hasProof = !!proofById[rid];
+                    const detailsJson = encodeURIComponent(JSON.stringify({
+                        id: r.id,
+                        username: r.username,
+                        amount: r.amount,
+                        paymentMethod: r.paymentMethod,
+                        createdAt: r.createdAt,
+                        userId: r.userId || r.username
+                    }));
+                    return `
+                        <div class="admin-item" style="flex-wrap: wrap; gap: 12px;">
+                            <div style="flex: 1; min-width: 200px;">
+                                <span class="name">${safeUser}</span>
+                                <span class="role"><span class="admin-badge-sm" style="background: #f59e0b;">PENDING</span></span>
+                                <div style="color: var(--gray); font-size: 13px; margin-top: 6px;">
+                                    $${safeAmt} · ${method.toUpperCase()} · <code style="color: var(--blue-light);">${sanitizeInput(r.id || '')}</code>
                                 </div>
                             </div>
-                        `;
-                    }).join('');
-                }
-            } catch (error) {
-                console.error('Error loading balance requests:', error);
-                requestsEl.innerHTML = '<p style="color: var(--gray);">No pending balance requests</p>';
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;">
+                                ${hasProof ? `<button type="button" class="btn-grant br-proof-btn" data-details="${detailsJson}" data-rid="${rid.replace(/"/g, '&quot;')}">Review proof</button>` : ''}
+                                <button type="button" class="btn-grant br-approve-btn" data-rid="${rid.replace(/"/g, '&quot;')}">Approve</button>
+                                <button type="button" class="btn-revoke br-reject-btn" data-rid="${rid.replace(/"/g, '&quot;')}">Reject</button>
+                            </div>
+                        </div>`;
+                }).join('');
+
+                requestsEl.querySelectorAll('.br-approve-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const id = btn.getAttribute('data-rid');
+                        if (id) approveBalanceRequest(id, null);
+                    });
+                });
+                requestsEl.querySelectorAll('.br-reject-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const id = btn.getAttribute('data-rid');
+                        if (id) rejectBalanceRequest(id, null);
+                    });
+                });
+                requestsEl.querySelectorAll('.br-proof-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        try {
+                            const id = btn.getAttribute('data-rid');
+                            const details = JSON.parse(decodeURIComponent(btn.getAttribute('data-details') || '%7B%7D'));
+                            const proofUrl = (id && proofById[id]) || '';
+                            openProofReviewModal(details.id, proofUrl, details);
+                        } catch (e) {
+                            console.error(e);
+                        }
+                    });
+                });
+            } catch (e) {
+                console.error(e);
+                requestsEl.innerHTML = '<p style="color: #ef4444;">Could not load balance requests.</p>';
             }
         }
-        
+
         // Seller Management Functions
         function isSeller(username) {
             if (!username) return false;
@@ -6828,320 +6853,79 @@ const safePaymentMethod = sanitizeInput(req.paymentMethod || 'N/A');
             }
             
             const normalized = username.toLowerCase().trim();
-            
-            // Load and update user balance
-            if (window.db && window.firestoreFunctions) {
-                try {
-                    const { collection, doc, getDoc, setDoc, updateDoc, query, where, getDocs } = window.firestoreFunctions;
-                    const usersRef = collection(window.db, 'users');
-                    const userDocRef = doc(usersRef, normalized);
-                    const userDoc = await getDoc(userDocRef);
-                    
-                    if (userDoc.exists()) {
-                        const userDataFromFirebase = userDoc.data();
-                        const firebaseUID = userDataFromFirebase.firebaseUID;
-                        const currentBalance = parseFloat(userDataFromFirebase.balance || 0);
-                        const currentTotalRecharge = parseFloat(userDataFromFirebase.totalRecharge || 0);
-                        const newBalance = currentBalance + amount;
-                        const newTotalRecharge = currentTotalRecharge + amount;
-                        
-                        // Update users collection (by username)
-                        await updateDoc(userDocRef, {
-                            balance: newBalance,
-                            totalRecharge: newTotalRecharge
-                        });
-                        
-                        // Also try to update userBalances collection (by UID) if UID exists
-                        // Wrap in try-catch in case of permission issues
-                        if (firebaseUID) {
-                            try {
-                                const userBalanceRef = doc(window.db, 'userBalances', firebaseUID);
-                                const userBalanceDoc = await getDoc(userBalanceRef);
-                                
-                                if (userBalanceDoc.exists()) {
-                                    await updateDoc(userBalanceRef, {
-                                        balance: newBalance,
-                                        totalRecharge: newTotalRecharge,
-                                        updatedAt: new Date().toISOString()
-                                    });
-                                } else {
-                                    await setDoc(userBalanceRef, {
-                                        balance: newBalance,
-                                        totalRecharge: newTotalRecharge,
-                                        username: normalized,
-                                        createdAt: new Date().toISOString(),
-                                        updatedAt: new Date().toISOString()
-                                    });
-                                }
-                            } catch (uidError) {
-                                // If we can't access userBalances, that's okay - users collection is the primary source
-                                console.log('Could not update userBalances collection (permission issue):', uidError);
-                            }
-                        }
-                        
-                        showAnimatedPopup('Success', `Loaded $${amount.toFixed(2)} to ${normalized}. New balance: $${newBalance.toFixed(2)}`, 'success');
-                        
-                        // If this is the current user, update local data immediately
-                        if (userData && userData.username.toLowerCase() === normalized) {
-                            userData.balance = newBalance;
-                            userData.totalRecharge = newTotalRecharge;
-                            localStorage.setItem('pluxoUser', JSON.stringify(userData));
-                            
-                            // Update UI instantly
-                            updateUI();
-                            
-                            // Sync to Firestore in background (already updated above, but ensure sync)
-                            // Wrap in try-catch to prevent permission errors from breaking the flow
-                            try {
-                                await saveUserBalanceToFirestore();
-                            } catch (saveError) {
-                                console.log('Could not sync balance to Firestore (non-critical):', saveError);
-                                // This is non-critical since we already updated the users collection above
-                            }
-                        }
-                    } else {
-                        // Create new user with balance
-                        await setDoc(userDocRef, {
-                            username: normalized,
-                            balance: amount,
-                            totalRecharge: amount,
-                            cart: [],
-                            firebaseUID: null
-                        });
-                        showAnimatedPopup('Success', `Created user ${normalized} with balance $${amount.toFixed(2)}`, 'success');
-                    }
-                    
-                    usernameInput.value = '';
-                    amountInput.value = '';
-                } catch (error) {
-                    console.error('Error loading balance:', error);
-                    // Provide more helpful error messages
-                    let errorMessage = 'Error loading balance: ' + error.message;
-                    
-                    // Check for specific Firestore permission errors
-                    const isPermissionError = error.code === 'permission-denied' || 
-                                            error.code === 'PERMISSION_DENIED' ||
-                                            (error.message && (
-                                                error.message.toLowerCase().includes('permission') ||
-                                                error.message.toLowerCase().includes('permission-denied') ||
-                                                error.message.toLowerCase().includes('insufficient permissions')
-                                            ));
-                    
-                    if (isPermissionError) {
-                        // Only show permission error if it's actually a permission issue
-                        // The users collection update should work for admins, so this might be a Firestore rules issue
-                        errorMessage = 'Permission denied: Unable to update user balance. This may be due to Firestore security rules. The operation may have partially succeeded.';
-                    } else {
-                        // For other errors, show the actual error message
-                        errorMessage = 'Error loading balance: ' + (error.message || 'Unknown error occurred');
-                    }
-                    
-                    showAnimatedPopup('Error', errorMessage, 'error');
+            await _pluxoApiDiscovery;
+            try {
+                const response = await fetch(BOT_WEBHOOK_URL + '/api/balance/update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Webhook-Secret': WEBHOOK_SECRET
+                    },
+                    body: JSON.stringify({
+                        username: normalized,
+                        action: 'add',
+                        amount: amount,
+                        reason: 'Admin panel load'
+                    })
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    showAnimatedPopup('Error', data.error || 'Failed to update balance', 'error');
+                    return;
                 }
-            } else {
-                showAnimatedPopup('Error', 'Database not available', 'error');
+                const newBalance = parseFloat(data.newBalance);
+                const br = await fetch(BOT_WEBHOOK_URL + '/api/balance/' + encodeURIComponent(normalized), {
+                    headers: { 'X-Webhook-Secret': WEBHOOK_SECRET }
+                });
+                const bd = await br.json().catch(() => ({}));
+                const newTR = bd.success ? parseFloat(bd.totalRecharge || 0) : 0;
+                showAnimatedPopup('Success', `Loaded $${amount.toFixed(2)} to ${normalized}. New balance: $${newBalance.toFixed(2)}`, 'success');
+                if (userData && userData.username.toLowerCase() === normalized) {
+                    userData.balance = newBalance;
+                    if (bd.success) userData.totalRecharge = newTR;
+                    localStorage.setItem('pluxoUser', JSON.stringify(userData));
+                    updateUI();
+                }
+                usernameInput.value = '';
+                amountInput.value = '';
+            } catch (error) {
+                console.error('Error loading balance:', error);
+                showAnimatedPopup('Error', error.message || 'Error loading balance', 'error');
             }
         }
 
-        // Admin balance loading function by UID
         async function loadUserBalanceByUID() {
-            if (!isAdmin(userData?.username)) {
-                showAnimatedPopup('Error', 'Only admins can load balances', 'error');
-                return;
-            }
-            
-            const uidInput = document.getElementById('loadBalanceUID');
-            const amountInput = document.getElementById('loadBalanceAmountUID');
-            
-            const uid = uidInput.value.trim();
-            const amount = parseFloat(amountInput.value);
-            
-            if (!uid) {
-                showAnimatedPopup('Error', 'Enter a Firebase UID', 'error');
-                shakeElement(uidInput);
-                return;
-            }
-            
-            if (!amount || amount <= 0) {
-                showAnimatedPopup('Error', 'Enter a valid amount', 'error');
-                shakeElement(amountInput);
-                return;
-            }
-            
-            // Load and update user balance by UID
-            if (window.db && window.firestoreFunctions) {
-                try {
-                    const { doc, getDoc, setDoc, updateDoc } = window.firestoreFunctions;
-                    
-                    // First, try to get user from userBalances collection
-                    const userBalanceRef = doc(window.db, 'userBalances', uid);
-                    const userBalanceDoc = await getDoc(userBalanceRef);
-                    
-                    let username = null;
-                    let currentBalance = 0;
-                    let currentTotalRecharge = 0;
-                    
-                    if (userBalanceDoc.exists()) {
-                        const balanceData = userBalanceDoc.data();
-                        username = balanceData.username || null;
-                        currentBalance = parseFloat(balanceData.balance || 0);
-                        currentTotalRecharge = parseFloat(balanceData.totalRecharge || 0);
-                    }
-                    
-                    const newBalance = currentBalance + amount;
-                    const newTotalRecharge = currentTotalRecharge + amount;
-                    
-                    // Update userBalances collection (by UID)
-                    if (userBalanceDoc.exists()) {
-                        await updateDoc(userBalanceRef, {
-                            balance: newBalance,
-                            totalRecharge: newTotalRecharge,
-                            updatedAt: new Date().toISOString()
-                        });
-                    } else {
-                        await setDoc(userBalanceRef, {
-                            balance: newBalance,
-                            totalRecharge: newTotalRecharge,
-                            username: username || 'unknown',
-                            createdAt: new Date().toISOString(),
-                            updatedAt: new Date().toISOString()
-                        });
-                    }
-                    
-                    // Also try to update users collection if we have a username
-                    if (username) {
-                        try {
-                            const usersRef = doc(window.db, 'users', username.toLowerCase());
-                            const userDoc = await getDoc(usersRef);
-                            
-                            if (userDoc.exists()) {
-                                await updateDoc(usersRef, {
-                                    balance: newBalance,
-                                    totalRecharge: newTotalRecharge
-                                });
-                            } else {
-                                await setDoc(usersRef, {
-                                    username: username.toLowerCase(),
-                                    balance: newBalance,
-                                    totalRecharge: newTotalRecharge,
-                                    cart: [],
-                                    firebaseUID: uid
-                                });
-                            }
-                        } catch (usersError) {
-                            console.log('Could not update users collection (non-critical):', usersError);
-                            // This is okay, userBalances is updated
-                        }
-                    }
-                    
-                    const displayName = username || `UID: ${uid.substring(0, 8)}...`;
-                    showAnimatedPopup('Success', `Loaded $${amount.toFixed(2)} to ${displayName}. New balance: $${newBalance.toFixed(2)}`, 'success');
-                    
-                    // If this is the current user, update local data immediately
-                    if (userData && userData.firebaseUID === uid) {
-                        userData.balance = newBalance;
-                        userData.totalRecharge = newTotalRecharge;
-                        localStorage.setItem('pluxoUser', JSON.stringify(userData));
-                        
-                        // Update UI instantly
-                        updateUI();
-                    }
-                    
-                    // Clear inputs
-                    uidInput.value = '';
-                    amountInput.value = '';
-                    
-                } catch (error) {
-                    console.error('Error loading balance by UID:', error);
-                    let errorMessage = 'Error loading balance: ' + error.message;
-                    
-                    // Check for specific Firestore permission errors
-                    const isPermissionError = error.code === 'permission-denied' || 
-                                            error.code === 'PERMISSION_DENIED' ||
-                                            (error.message && (
-                                                error.message.toLowerCase().includes('permission') ||
-                                                error.message.toLowerCase().includes('permission-denied') ||
-                                                error.message.toLowerCase().includes('insufficient permissions')
-                                            ));
-                    
-                    if (isPermissionError) {
-                        errorMessage = 'Permission denied: Unable to update user balance. This may be due to Firestore security rules.';
-                    }
-                    
-                    showAnimatedPopup('Error', errorMessage, 'error');
-                }
-            } else {
-                showAnimatedPopup('Error', 'Database not available', 'error');
-            }
+            showAnimatedPopup('Info', 'UID loading is disabled. Use "Load balance" with a username — data lives on the Pluxo bot server.', 'info');
         }
 
-        // Admin username loading function
-        function loadAnyUsername() {
+        async function loadAnyUsername() {
             if (!isAdmin(userData?.username)) {
                 showAnimatedPopup('Error', 'Only admins can load usernames', 'error');
                 return;
             }
-            
             const username = prompt('Enter username to load:');
             if (!username) return;
-            
             const normalized = username.toLowerCase().trim();
-            
-            // Load user data from Firebase if available, otherwise create new user data
-            if (window.db && window.firestoreFunctions) {
-                const { collection, doc, getDoc, setDoc } = window.firestoreFunctions;
-                const usersRef = collection(window.db, 'users');
-                getDoc(doc(usersRef, normalized)).then(docSnap => {
-                    if (docSnap.exists()) {
-                        const userDataFromFirebase = docSnap.data();
-                        userData = {
-                            username: userDataFromFirebase.username || normalized,
-                            balance: userDataFromFirebase.balance || 0,
-                            totalRecharge: userDataFromFirebase.totalRecharge || 0,
-                            cart: userDataFromFirebase.cart || [],
-                            firebaseUID: userDataFromFirebase.firebaseUID || null
-                        };
-                    } else {
-                        // Create new user data if doesn't exist
-                        userData = {
-                            username: normalized,
-                            balance: 0,
-                            totalRecharge: 0,
-                            cart: [],
-                            firebaseUID: null
-                        };
-                        // Save to Firebase
-                        setDoc(doc(usersRef, normalized), userData).catch(err => {
-                            console.error('Error creating user:', err);
-                        });
-                    }
-                    localStorage.setItem('pluxoUser', JSON.stringify(userData));
-                    updateUI();
-                    showAnimatedPopup('Success', `Loaded user: ${normalized}`, 'success');
-                }).catch(err => {
-                    console.error('Error loading user:', err);
-                    // If Firebase fails, create local user data
-                    userData = {
-                        username: normalized,
-                        balance: 0,
-                        totalRecharge: 0,
-                        cart: []
-                    };
-                    localStorage.setItem('pluxoUser', JSON.stringify(userData));
-                    updateUI();
-                    showAnimatedPopup('Success', `Loaded user: ${normalized}`, 'success');
+            await _pluxoApiDiscovery;
+            try {
+                const response = await fetch(BOT_WEBHOOK_URL + '/api/balance/' + encodeURIComponent(normalized), {
+                    headers: { 'X-Webhook-Secret': WEBHOOK_SECRET }
                 });
-            } else {
-                // If Firebase not available, create local user data
+                const data = await response.json().catch(() => ({}));
                 userData = {
                     username: normalized,
-                    balance: 0,
-                    totalRecharge: 0,
-                    cart: []
+                    balance: data.success ? parseFloat(data.balance) : 0,
+                    totalRecharge: data.success ? parseFloat(data.totalRecharge) : 0,
+                    cart: [],
+                    firebaseUID: null
                 };
+                window.userData = userData;
                 localStorage.setItem('pluxoUser', JSON.stringify(userData));
                 updateUI();
                 showAnimatedPopup('Success', `Loaded user: ${normalized}`, 'success');
+            } catch (err) {
+                console.error('Error loading user:', err);
+                showAnimatedPopup('Error', 'Could not load user from server', 'error');
             }
         }
 
@@ -7156,60 +6940,27 @@ const safePaymentMethod = sanitizeInput(req.paymentMethod || 'N/A');
             if (!balancesDisplay) return;
             
             balancesDisplay.innerHTML = '<p style="color: var(--gray); text-align: center; padding: 20px;">Loading balances...</p>';
-            
+            await _pluxoApiDiscovery;
             try {
-                if (!window.db || !window.firestoreFunctions) {
-                    throw new Error('Firestore not initialized');
+                const response = await fetch(BOT_WEBHOOK_URL + '/api/admin/balances', {
+                    headers: { 'X-Webhook-Secret': WEBHOOK_SECRET }
+                });
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok || !payload.success) {
+                    throw new Error(payload.error || 'API error');
                 }
-                
-                const { collection, getDocs, doc, getDoc } = window.firestoreFunctions;
-                const usersRef = collection(window.db, 'users');
-                
-                // Get all users from users collection
-                const querySnapshot = await getDocs(usersRef);
-                
-                if (querySnapshot.empty) {
+                const rows = payload.users || [];
+                if (rows.length === 0) {
                     balancesDisplay.innerHTML = '<p style="color: var(--gray); text-align: center; padding: 20px;">No users found</p>';
                     return;
                 }
-                
-                const balances = [];
-                
-                // Process each user and get their balance from userBalances if they have a UID
-                for (const userDoc of querySnapshot.docs) {
-                    const userData = userDoc.data();
-                    const username = userDoc.id;
-                    const firebaseUID = userData.firebaseUID;
-                    
-                    let balance = parseFloat(userData.balance || 0);
-                    let totalRecharge = parseFloat(userData.totalRecharge || 0);
-                    let updatedAt = 'Never';
-                    
-                    // If user has a UID, try to get balance from userBalances collection
-                    if (firebaseUID) {
-                        try {
-                            const userBalanceRef = doc(window.db, 'userBalances', firebaseUID);
-                            const userBalanceDoc = await getDoc(userBalanceRef);
-                            if (userBalanceDoc.exists()) {
-                                const balanceData = userBalanceDoc.data();
-                                balance = parseFloat(balanceData.balance || balance);
-                                totalRecharge = parseFloat(balanceData.totalRecharge || totalRecharge);
-                                updatedAt = balanceData.updatedAt || 'Never';
-                            }
-                        } catch (err) {
-                            // If we can't access userBalances, use users collection data
-                            console.log(`Could not access userBalances for ${username}, using users collection data`);
-                        }
-                    }
-                    
-                    balances.push({
-                        username: username,
-                        balance: balance,
-                        totalRecharge: totalRecharge,
-                        uid: firebaseUID || null,
-                        updatedAt: updatedAt
-                    });
-                }
+                const balances = rows.map(u => ({
+                    username: u.username,
+                    balance: parseFloat(u.balance || 0),
+                    totalRecharge: parseFloat(u.totalRecharge || 0),
+                    uid: null,
+                    updatedAt: u.registered_at || '—'
+                }));
                 
                 // Sort by balance descending
                 balances.sort((a, b) => b.balance - a.balance);
@@ -7266,7 +7017,7 @@ const safePaymentMethod = sanitizeInput(req.paymentMethod || 'N/A');
                 return;
             }
             
-            showAnimatedPopup('Info', 'Refreshing balance from Firestore...', 'info');
+            showAnimatedPopup('Info', 'Refreshing balance from server...', 'info');
             await loadUserBalanceFromFirestore();
             showAnimatedPopup('Success', `Balance refreshed! Current balance: $${(userData.balance || 0).toFixed(2)}`, 'success');
         };
@@ -7418,197 +7169,93 @@ const safePaymentMethod = sanitizeInput(req.paymentMethod || 'N/A');
         window.addSellerProduct = addSellerProduct;
         window.deleteSellerProduct = deleteSellerProduct;
         
-        // Approve balance request - Secured
-        async function approveBalanceRequest(requestId, userId, amount, username, adminComment = null) {
-            // Security: Verify admin access
+        // Approve balance request (server applies amount from stored request)
+        async function approveBalanceRequest(requestId, adminComment = null) {
             if (!verifyAdminAccess()) {
                 alert('Only admins can approve requests');
                 return;
             }
-            
-            // Security: Input validation
-            if (!requestId || typeof requestId !== 'string' || requestId.length > 100) {
+            if (!requestId || typeof requestId !== 'string' || requestId.length > 120) {
                 alert('Invalid request ID');
                 return;
             }
-            
-            if (!userId || typeof userId !== 'string' || userId.length > 100) {
-                alert('Invalid user ID');
-                return;
-            }
-            
-            if (!username || typeof username !== 'string' || username.length > 50) {
-                alert('Invalid username');
-                return;
-            }
-            
-            // Security: Validate amount
-            const amountNum = parseFloat(amount);
-            if (isNaN(amountNum) || amountNum <= 0 || amountNum > 100000) {
-                alert('Invalid amount');
-                return;
-            }
-            
-            // Security: Rate limiting
             const rateCheck = checkRateLimit('approveBalance', 20, 60000);
             if (!rateCheck.allowed) {
                 alert(rateCheck.message);
                 return;
             }
-            
-            // Security: Sanitize inputs
-            const safeUsername = sanitizeInput(username);
-            const safeAmount = amountNum.toFixed(2);
-            
-            if (!confirm(`Approve $${safeAmount} balance for ${safeUsername}?`)) return;
-            
+            if (!confirm('Approve this balance request? The amount stored on the server will be credited.')) return;
+            await _pluxoApiDiscovery;
             try {
-                // Get Firestore db and functions
-                let firestoreDb = window.db;
-                let firestore = window.firestoreFunctions;
-                let retries = 0;
-                const maxRetries = 10;
-                
-                // Wait for Firebase to be initialized
-                while ((!firestoreDb || !firestore) && retries < maxRetries) {
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    firestoreDb = window.db;
-                    firestore = window.firestoreFunctions;
-                    retries++;
+                const response = await fetch(
+                    BOT_WEBHOOK_URL + '/api/admin/balance-requests/' + encodeURIComponent(requestId) + '/approve',
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Webhook-Secret': WEBHOOK_SECRET
+                        },
+                        body: JSON.stringify({
+                            adminUsername: userData.username,
+                            adminComment: adminComment || null
+                        })
+                    }
+                );
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(payload.error || 'Request failed');
                 }
-                
-                if (!firestoreDb || !firestore) {
-                    throw new Error('Firebase not initialized. Please refresh the page and try again.');
-                }
-                
-                const { doc, updateDoc, getDoc, setDoc } = firestore;
-                
-// Update request status
-                const requestRef = doc(firestoreDb, 'balanceRequests', requestId);
-                await updateDoc(requestRef, {
-                    status: 'approved',
-                    approvedBy: userData.username,
-                    approvedAt: new Date().toISOString(),
-                    adminComment: adminComment || null
-                });
-                
-                // Update user balance in Firestore
-                const userBalanceRef = doc(firestoreDb, 'userBalances', userId);
-                const userBalanceDoc = await getDoc(userBalanceRef);
-                
-                if (userBalanceDoc.exists()) {
-                    const currentBalance = userBalanceDoc.data().balance || 0;
-                    const currentRecharge = userBalanceDoc.data().totalRecharge || 0;
-                    await updateDoc(userBalanceRef, {
-                        balance: currentBalance + amountNum,
-                        totalRecharge: currentRecharge + amountNum,
-                        updatedAt: new Date().toISOString()
-                    });
-                } else {
-                    await setDoc(userBalanceRef, {
-                        balance: amountNum,
-                        totalRecharge: amountNum,
-                        username: username.toLowerCase(),
-                        createdAt: new Date().toISOString()
-                    });
-                }
-                
-                // Update local userData if it's the current user
-                if (userData.firebaseUID === userId) {
-                    userData.balance = (userData.balance || 0) + amountNum;
-                    userData.totalRecharge = (userData.totalRecharge || 0) + amountNum;
-                    localStorage.setItem('pluxoUser', JSON.stringify(userData));
-                    await saveUserBalanceToFirestore(); // Sync to Firestore
-                    updateUI();
-                }
-                
+                await loadUserBalanceFromFirestore();
                 alert('Balance request approved!');
                 renderBalanceRequests();
             } catch (error) {
                 console.error('Error approving balance request:', error);
-                let errorMsg = 'Error approving request. ';
-                if (error.message) {
-                    errorMsg += error.message;
-                } else if (error.code) {
-                    errorMsg += `Error code: ${error.code}`;
-                } else {
-                    errorMsg += 'Please try again.';
-                }
-                alert(errorMsg);
+                alert('Error approving request. ' + (error.message || 'Please try again.'));
             }
         }
-        
-        // Reject balance request - Secured
+
         async function rejectBalanceRequest(requestId, adminComment = null) {
-            // Security: Verify admin access
             if (!verifyAdminAccess()) {
                 alert('Only admins can reject requests');
                 return;
             }
-            
-            // Security: Input validation
-            if (!requestId || typeof requestId !== 'string' || requestId.length > 100) {
+            if (!requestId || typeof requestId !== 'string' || requestId.length > 120) {
                 alert('Invalid request ID');
                 return;
             }
-            
-            // Security: Rate limiting
             const rateCheck = checkRateLimit('rejectBalance', 20, 60000);
             if (!rateCheck.allowed) {
                 alert(rateCheck.message);
                 return;
             }
-            
             if (!confirm('Reject this balance request?')) return;
-            
+            await _pluxoApiDiscovery;
             try {
-                // Get Firestore db and functions
-                let firestoreDb = window.db;
-                let firestore = window.firestoreFunctions;
-                let retries = 0;
-                const maxRetries = 10;
-                
-                // Wait for Firebase to be initialized
-                while ((!firestoreDb || !firestore) && retries < maxRetries) {
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    firestoreDb = window.db;
-                    firestore = window.firestoreFunctions;
-                    retries++;
+                const response = await fetch(
+                    BOT_WEBHOOK_URL + '/api/admin/balance-requests/' + encodeURIComponent(requestId) + '/reject',
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Webhook-Secret': WEBHOOK_SECRET
+                        },
+                        body: JSON.stringify({
+                            adminUsername: userData.username,
+                            adminComment: adminComment || null
+                        })
+                    }
+                );
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    throw new Error(payload.error || 'Request failed');
                 }
-                
-                if (!firestoreDb || !firestore) {
-                    throw new Error('Firebase not initialized. Please refresh the page and try again.');
-                }
-                
-                const { doc, updateDoc } = firestore;
-                
-const requestRef = doc(firestoreDb, 'balanceRequests', requestId);
-                await updateDoc(requestRef, {
-                    status: 'rejected',
-                    approvedBy: userData.username,
-                    approvedAt: new Date().toISOString(),
-                    adminComment: adminComment || null
-                });
-                
                 alert('Balance request rejected');
                 renderBalanceRequests();
             } catch (error) {
                 console.error('Error rejecting balance request:', error);
-                let errorMsg = 'Error rejecting request. ';
-                if (error.message) {
-                    errorMsg += error.message;
-                } else if (error.code) {
-                    errorMsg += `Error code: ${error.code}`;
-                } else {
-                    errorMsg += 'Please try again.';
-                }
-                alert(errorMsg);
+                alert('Error rejecting request. ' + (error.message || 'Please try again.'));
             }
         }
-        
-        // Make functions globally accessible
-        window.approveBalanceRequest = approveBalanceRequest;
-        window.rejectBalanceRequest = rejectBalanceRequest;
         
         /* ==================== ADMIN STOCK MANAGEMENT (SECURE) ==================== */
         
@@ -9363,13 +9010,13 @@ const requestRef = doc(firestoreDb, 'balanceRequests', requestId);
             }
         }
         
-        // Load user balance from Bot API
+        // Load user balance from Pluxo bot API (admin_users.json)
         async function loadUserBalanceFromFirestore() {
             if (!userData || !userData.username) {
                 updateUI();
                 return;
             }
-            
+            await _pluxoApiDiscovery;
             try {
                 const normalized = userData.username.toLowerCase().trim();
                 const url = BOT_WEBHOOK_URL + '/api/balance/' + normalized;
@@ -9401,7 +9048,7 @@ const requestRef = doc(firestoreDb, 'balanceRequests', requestId);
         // Update balance on bot after purchase
         async function updateBalanceOnBot(amount, action, reason) {
             if (!userData || !userData.username) return false;
-            
+            await _pluxoApiDiscovery;
             try {
                 const response = await fetch(`${BOT_WEBHOOK_URL}/api/balance/update`, {
                     method: 'POST',
@@ -9434,48 +9081,12 @@ const requestRef = doc(firestoreDb, 'balanceRequests', requestId);
         
         window.updateBalanceOnBot = updateBalanceOnBot;
 
-        // Save user balance to Firestore
+        // Balance is authoritative on the server; refresh from API after local changes (games, etc.)
         async function saveUserBalanceToFirestore() {
-            if (!userData || !userData.firebaseUID) {
-                console.warn('Cannot save balance: missing userData or firebaseUID');
-                return;
-            }
-            
-            if (!window.db || !window.firestoreFunctions) {
-                console.warn('Cannot save balance: Firestore not initialized');
-                return;
-            }
-            
+            if (!userData || !userData.username) return;
             try {
-                const { doc, getDoc, setDoc, updateDoc } = window.firestoreFunctions;
-                const userBalanceRef = doc(window.db, 'userBalances', userData.firebaseUID);
-                const userBalanceDoc = await getDoc(userBalanceRef);
-                
-                // Ensure balance values are numbers, not strings
-                const balanceValue = parseFloat(userData.balance || 0);
-                const totalRechargeValue = parseFloat(userData.totalRecharge || 0);
-                
-                const balanceData = {
-                    balance: balanceValue,
-                    totalRecharge: totalRechargeValue,
-                    username: userData.username ? userData.username.toLowerCase() : 'user',
-                    updatedAt: new Date().toISOString()
-                };
-                
-                if (userBalanceDoc.exists()) {
-                    // Update existing document
-                    await updateDoc(userBalanceRef, balanceData);
-                } else {
-                    // Create new document
-                    balanceData.createdAt = new Date().toISOString();
-                    await setDoc(userBalanceRef, balanceData);
-                }
-                
-                // Also update localStorage to ensure consistency
-                localStorage.setItem('pluxoUser', JSON.stringify(userData));
-            } catch (error) {
-                console.error('Error saving user balance:', error);
-                // Even if Firestore save fails, keep localStorage updated
+                await loadUserBalanceFromFirestore();
+            } catch (e) {
                 localStorage.setItem('pluxoUser', JSON.stringify(userData));
             }
         }
@@ -9638,24 +9249,82 @@ const requestRef = doc(firestoreDb, 'balanceRequests', requestId);
             instructionText.textContent = instructions[method] || 'Please complete the payment.';
         }
 
-        // Mark as Paid function with cool animation
-        function markAsPaid() {
+        function readFileAsDataURL(file) {
+            return new Promise((resolve, reject) => {
+                const r = new FileReader();
+                r.onload = () => resolve(r.result);
+                r.onerror = reject;
+                r.readAsDataURL(file);
+            });
+        }
+
+        async function markAsPaid() {
             const paymentMethod = document.getElementById('payMethod').value;
             const amt = parseFloat(document.getElementById('fundAmt').value);
             const bonusCode = document.getElementById('bonusCode').value.trim();
-            
+            const password = (document.getElementById('fundSubmitPassword') && document.getElementById('fundSubmitPassword').value) || '';
+
+            if (!userData || !userData.username) {
+                showAnimatedPopup('Error', 'Please log in to submit a deposit request', 'error');
+                return;
+            }
+
             if (!paymentMethod || (paymentMethod !== 'btc' && paymentMethod !== 'ltc')) {
                 showAnimatedPopup('Error', 'Please select a payment method', 'error');
                 return;
             }
-            
+
             if (!amt || amt < 10) {
                 showAnimatedPopup('Error', 'Please select an amount (minimum $10)', 'error');
                 return;
             }
-            
-            // Show cool paid animation popup
-            showPaidAnimation();
+
+            if (!password) {
+                showAnimatedPopup('Error', 'Enter your account password to submit this request', 'error');
+                return;
+            }
+            await _pluxoApiDiscovery;
+
+            let paymentProofDataUrl = null;
+            let paymentProofFileName = null;
+            if (uploadedProofFile) {
+                try {
+                    paymentProofDataUrl = await readFileAsDataURL(uploadedProofFile);
+                    paymentProofFileName = uploadedProofFile.name;
+                } catch (e) {
+                    showAnimatedPopup('Error', 'Could not read proof file', 'error');
+                    return;
+                }
+            }
+
+            try {
+                const res = await fetch(BOT_WEBHOOK_URL + '/api/balance-requests/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: userData.username.toLowerCase(),
+                        password,
+                        amount: amt,
+                        paymentMethod,
+                        bonusCode: bonusCode || null,
+                        paymentProofDataUrl,
+                        paymentProofFileName
+                    })
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    showAnimatedPopup('Error', data.error || 'Could not submit request', 'error');
+                    return;
+                }
+                const pwEl = document.getElementById('fundSubmitPassword');
+                if (pwEl) pwEl.value = '';
+                removePaymentProof();
+                closeFundsModal();
+                showApprovalAnimation();
+            } catch (e) {
+                console.error(e);
+                showAnimatedPopup('Error', e.message || 'Network error', 'error');
+            }
         }
 
         function showPaidAnimation() {
@@ -9786,6 +9455,9 @@ const requestRef = doc(firestoreDb, 'balanceRequests', requestId);
             if (customInput) customInput.value = '';
             const bonusCodeInput = document.getElementById('bonusCode');
             if (bonusCodeInput) bonusCodeInput.value = '';
+            const fundPw = document.getElementById('fundSubmitPassword');
+            if (fundPw) fundPw.value = '';
+            removePaymentProof();
         }
 
         function openFundsModal() {
@@ -9796,25 +9468,6 @@ const requestRef = doc(firestoreDb, 'balanceRequests', requestId);
             document.getElementById('fundsStep3').style.display = 'none';
             selectedPaymentMethod = '';
             selectedAmountValue = 0;
-        }
-
-        // Upload proof to Firebase Storage
-        async function uploadPaymentProofToStorage(file, requestId) {
-            if (!window.firebaseStorage) {
-                throw new Error('Firebase Storage not initialized');
-            }
-
-            const storageRef = window.firebaseStorage.ref();
-            const proofRef = storageRef.child(`payment-proofs/${requestId}/${file.name}`);
-            
-            try {
-                const snapshot = await proofRef.put(file);
-                const downloadURL = await snapshot.ref.getDownloadURL();
-                return downloadURL;
-            } catch (error) {
-                console.error('Error uploading payment proof:', error);
-                throw error;
-            }
         }
 
         // Make functions globally accessible
@@ -9831,91 +9484,7 @@ const requestRef = doc(firestoreDb, 'balanceRequests', requestId);
 
         async function addFunds(e) {
             e.preventDefault();
-            if (!userData || !userData.firebaseUID) {
-                showAnimatedPopup('Error', 'Please login to add funds', 'error');
-                return;
-            }
-            
-            const amt = parseFloat(document.getElementById('fundAmt').value);
-            const paymentMethod = document.getElementById('payMethod').value;
-            const bonusCode = document.getElementById('bonusCode').value.trim();
-            
-            if (!paymentMethod || (paymentMethod !== 'btc' && paymentMethod !== 'ltc')) {
-                showAnimatedPopup('Error', 'Please select a payment method', 'error');
-                return;
-            }
-            
-            if (amt < 10) {
-                showAnimatedPopup('Error', 'Minimum amount is $10', 'error');
-                return;
-            }
-
-            // Create pending balance request
-            const requestId = 'BR' + Date.now() + Math.random().toString(36).substr(2, 9);
-
-            const balanceRequest = {
-                id: requestId,
-                userId: userData.firebaseUID,
-                username: userData.username,
-                amount: amt,
-                paymentMethod: paymentMethod,
-                bonusCode: bonusCode || null,
-                paymentProofUrl: null,
-                paymentProofFileName: null,
-                status: 'pending',
-                createdAt: new Date().toISOString(),
-                approvedBy: null,
-                approvedAt: null,
-                adminComment: null
-            };
-            
-            try {
-                // Wait for Firebase to be fully initialized (with retries)
-                let firestoreDb = window.db;
-                let firestore = window.firestoreFunctions;
-                let retries = 0;
-                const maxRetries = 10;
-                
-                while ((!firestoreDb || !firestore) && retries < maxRetries) {
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    firestoreDb = window.db;
-                    firestore = window.firestoreFunctions;
-                    retries++;
-                }
-                
-                if (!firestoreDb || !firestore) {
-                    throw new Error('Firebase not initialized. Please refresh the page and try again.');
-                }
-                
-                // Use the db and functions from window
-                const { collection, doc, setDoc } = firestore;
-                
-                // Save to Firestore
-                const requestsRef = collection(firestoreDb, 'balanceRequests');
-                await setDoc(doc(requestsRef, requestId), balanceRequest);
-                
-                console.log('Balance request submitted successfully:', requestId);
-                
-                // Show approval animation
-                closeFundsModal();
-                showApprovalAnimation();
-                
-// Reset form
-                document.getElementById('fundAmt').value = '';
-                document.getElementById('bonusCode').value = '';
-                removePaymentProof();
-            } catch (error) {
-                console.error('Error submitting balance request:', error);
-                let errorMsg = 'Error submitting request. ';
-                if (error.message) {
-                    errorMsg += error.message;
-                } else if (error.code) {
-                    errorMsg += `Error code: ${error.code}`;
-                } else {
-                    errorMsg += 'Please make sure you are logged in and try again.';
-                }
-                showAnimatedPopup('Error', errorMsg, 'error');
-            }
+            await markAsPaid();
         }
 
         function openSettings() { document.getElementById('settingsModal').classList.add('active'); }
@@ -9935,7 +9504,7 @@ const requestRef = doc(firestoreDb, 'balanceRequests', requestId);
                 showAnimatedPopup('Error', 'Please login first', 'error');
                 return;
             }
-            
+            await _pluxoApiDiscovery;
             if (!userData.cart || userData.cart.length === 0) {
                 showAnimatedPopup('Info', 'Cart is empty', 'info');
                 return;
@@ -9954,14 +9523,18 @@ const requestRef = doc(firestoreDb, 'balanceRequests', requestId);
             }
             
             const itemCount = userData.cart.length;
-            const cartItems = [...userData.cart]; // Copy cart items
-            const purchasedProductIds = cartItems
-                .map(item => item.productId)
-                .filter(id => id !== undefined && id !== null);
+            const cartItems = [...userData.cart];
             
             try {
-                // CRITICAL: Deduct balance from Railway API FIRST (prevents refresh exploit)
-                const balanceResponse = await fetch(BOT_WEBHOOK_URL + '/api/balance/update', {
+                const items = cartItems.map(item => ({
+                    key: item.key || '',
+                    price: parseFloat(item.price) || 0,
+                    bin: item.bin || (item.name ? item.name.split(' - ')[1] : '000000') || '000000',
+                    bank: item.bank || 'UNKNOWN BANK',
+                    base: item.base || '2026_1_3_US_Base',
+                    refundable: item.refundable !== undefined ? item.refundable : true
+                }));
+                const res = await fetch(BOT_WEBHOOK_URL + '/api/checkout', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -9969,71 +9542,28 @@ const requestRef = doc(firestoreDb, 'balanceRequests', requestId);
                     },
                     body: JSON.stringify({
                         username: userData.username.toLowerCase(),
-                        action: 'subtract',
-                        amount: total,
-                        reason: 'Purchase'
+                        items
                     })
                 });
-                
-                if (!balanceResponse.ok) {
-                    const errorData = await balanceResponse.json();
-                    throw new Error(errorData.error || 'Failed checkout');
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    throw new Error(data.error || 'Checkout failed');
                 }
-                
-                const balanceData = await balanceResponse.json();
-                
-                // Update local balance to match server
-                userData.balance = balanceData.newBalance;
-                localStorage.setItem('pluxoUser', JSON.stringify(userData));
-                
-                // Save orders for each cart item
-                for (const item of cartItems) {
-                    const product = {
-                        bin: item.bin || (item.name ? item.name.split(' - ')[1] : '000000') || '000000',
-                        bank: item.bank || 'UNKNOWN BANK',
-                        base: item.base || '2026_1_3_US_Base',
-                        price: parseFloat(item.price) || 0,
-                        refundable: item.refundable !== undefined ? item.refundable : true,
-                        key: item.key || '' // Include the purchase key
-                    };
-                    await saveOrder(product);
-                }
-                
-                // Clear cart
+                userData.balance = parseFloat(data.newBalance);
                 userData.cart = [];
                 localStorage.setItem('pluxoUser', JSON.stringify(userData));
-                await saveUserBalanceToFirestore(); // Sync to Firestore
+                const uname = userData.username.toLowerCase();
+                if (data.orders && Array.isArray(data.orders)) {
+                    userOrders[uname] = data.orders;
+                    localStorage.setItem('pluxoOrders', JSON.stringify(userOrders));
+                }
                 updateUI();
                 updateCartDisplay();
                 await generateProducts();
                 renderProducts();
                 renderPagination();
-                
-                // Notify bot about purchase
-                try {
-                    await fetch(BOT_WEBHOOK_URL + '/api/purchase/notify', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-Webhook-Secret': WEBHOOK_SECRET
-                        },
-                        body: JSON.stringify({
-                            username: userData.username.toLowerCase(),
-                            item_count: itemCount,
-                            total_amount: total,
-                            product_ids: purchasedProductIds,
-                            stock_slots: purchasedProductIds
-                        })
-                    });
-                } catch (notifyError) {
-                    console.error('Failed to notify bot:', notifyError);
-                    // Don't fail the purchase if notification fails
-                }
-                
                 showAnimatedPopup('Success', `Purchase complete! ${itemCount} item(s) added to your orders. Check Orders page for your keys.`, 'success');
                 toggleCart();
-                
-                // Refresh orders page if it's open
                 if (document.getElementById('page-orders') && document.getElementById('page-orders').style.display !== 'none') {
                     renderOrders();
                 }
@@ -10101,6 +9631,7 @@ const requestRef = doc(firestoreDb, 'balanceRequests', requestId);
         async function generateProducts() {
             // Load products from bot API (Railway)
             apiProductsLoaded = false;
+            await _pluxoApiDiscovery;
             try {
                 const response = await fetch(BOT_WEBHOOK_URL + '/api/products');
                 if (response.ok) {
@@ -10698,93 +10229,44 @@ const requestRef = doc(firestoreDb, 'balanceRequests', requestId);
         }
 
         async function saveOrder(product) {
-            if (!userData || !userData.firebaseUID) {
-                // Fallback to localStorage if Firebase UID not available
-                const username = userData?.username?.toLowerCase();
-                if (!username) return;
-                
-                if (!userOrders[username]) {
-                    userOrders[username] = [];
-                }
-                
-                const orderDetails = generateOrderDetails(product);
-                userOrders[username].push(orderDetails);
-                localStorage.setItem('pluxoOrders', JSON.stringify(userOrders));
-                return;
-            }
-            
-            // Save to Firestore
-            if (!window.db || !window.firestoreFunctions) {
-                console.warn('Cannot save order: Firestore not initialized');
-                return;
-            }
-            
+            const username = userData?.username?.toLowerCase();
+            if (!username) return;
+            const orderDetails = generateOrderDetails(product);
+            await _pluxoApiDiscovery;
             try {
-                const { doc, getDoc, setDoc, updateDoc, arrayUnion } = window.firestoreFunctions;
-                const orderDetails = generateOrderDetails(product);
-                const userDocRef = doc(window.db, 'userOrders', userData.firebaseUID);
-                
-                // Get existing orders or create new document
-                const userDoc = await getDoc(userDocRef);
-                if (userDoc.exists()) {
-                    // Add order to existing array
-                    await updateDoc(userDocRef, {
-                        orders: arrayUnion(orderDetails)
-                    });
-                } else {
-                    // Create new document with first order
-                    await setDoc(userDocRef, {
-                        orders: [orderDetails],
-                        username: userData.username.toLowerCase(),
-                        createdAt: new Date().toISOString()
-                    });
-                }
-                
-                // Also update local cache for immediate UI update
-                const username = userData.username.toLowerCase();
-                if (!userOrders[username]) {
-                    userOrders[username] = [];
-                }
-                userOrders[username].push(orderDetails);
-                localStorage.setItem('pluxoOrders', JSON.stringify(userOrders));
-                
-                console.log("Order saved to Firestore");
-            } catch (error) {
-                console.error("Error saving order to Firestore:", error);
-                // Fallback to localStorage
-                const username = userData.username.toLowerCase();
-                if (!userOrders[username]) {
-                    userOrders[username] = [];
-                }
-                const orderDetails = generateOrderDetails(product);
-                userOrders[username].push(orderDetails);
-                localStorage.setItem('pluxoOrders', JSON.stringify(userOrders));
+                await fetch(BOT_WEBHOOK_URL + '/api/orders/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Webhook-Secret': WEBHOOK_SECRET
+                    },
+                    body: JSON.stringify({ username, order: orderDetails })
+                });
+            } catch (e) {
+                console.warn('orders/add failed', e);
             }
+            if (!userOrders[username]) userOrders[username] = [];
+            userOrders[username].push(orderDetails);
+            localStorage.setItem('pluxoOrders', JSON.stringify(userOrders));
         }
 
-        // Load orders from Firestore
         async function loadOrdersFromFirestore() {
-            if (!userData || !userData.firebaseUID) return;
-            
-            if (!window.db || !window.firestoreFunctions) {
-                console.warn('Cannot load orders: Firestore not initialized');
-                return;
-            }
-            
+            if (!userData || !userData.username) return;
+            const username = userData.username.toLowerCase();
+            await _pluxoApiDiscovery;
             try {
-                const { doc, getDoc } = window.firestoreFunctions;
-                const userDocRef = doc(window.db, 'userOrders', userData.firebaseUID);
-                const userDoc = await getDoc(userDocRef);
-                
-                if (userDoc.exists()) {
-                    const data = userDoc.data();
-                    const username = userData.username.toLowerCase();
-                    userOrders[username] = data.orders || [];
-                    localStorage.setItem('pluxoOrders', JSON.stringify(userOrders));
-                    console.log("Orders loaded from Firestore");
+                const response = await fetch(BOT_WEBHOOK_URL + '/api/orders/' + encodeURIComponent(username), {
+                    headers: { 'X-Webhook-Secret': WEBHOOK_SECRET }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && Array.isArray(data.orders)) {
+                        userOrders[username] = data.orders;
+                        localStorage.setItem('pluxoOrders', JSON.stringify(userOrders));
+                    }
                 }
             } catch (error) {
-                console.error("Error loading orders from Firestore:", error);
+                console.error('Error loading orders from API:', error);
             }
         }
 
@@ -10795,8 +10277,7 @@ const requestRef = doc(firestoreDb, 'balanceRequests', requestId);
             
             if (!tbody || !userData) return;
 
-            // Load from Firestore if Firebase UID is available
-            if (userData.firebaseUID) {
+            if (userData.username) {
                 await loadOrdersFromFirestore();
             }
 
@@ -10887,23 +10368,6 @@ const requestRef = doc(firestoreDb, 'balanceRequests', requestId);
                 const ordersToRemove = (userOrders[username] || []).filter(o => selected.includes(o.id));
                 userOrders[username] = (userOrders[username] || []).filter(o => !selected.includes(o.id));
                 
-                // Remove from Firestore if Firebase UID is available
-                if (userData.firebaseUID && window.db && window.firestoreFunctions) {
-                    try {
-                        const { doc, getDoc, updateDoc, arrayRemove } = window.firestoreFunctions;
-                        const userDocRef = doc(window.db, 'userOrders', userData.firebaseUID);
-                        // Remove orders from Firestore array
-                        for (const order of ordersToRemove) {
-                            await updateDoc(userDocRef, {
-                                orders: arrayRemove(order)
-                            });
-                        }
-                        console.log("Orders removed from Firestore");
-                    } catch (error) {
-                        console.error("Error removing orders from Firestore:", error);
-                    }
-                }
-                
                 localStorage.setItem('pluxoOrders', JSON.stringify(userOrders));
                 showOnlySelected = false;
                 await renderOrders();
@@ -10923,8 +10387,7 @@ const requestRef = doc(firestoreDb, 'balanceRequests', requestId);
         async function exportOrders() {
             if (!userData) return;
             
-            // Load from Firestore if Firebase UID is available
-            if (userData.firebaseUID) {
+            if (userData.username) {
                 await loadOrdersFromFirestore();
             }
             
@@ -11179,246 +10642,136 @@ const requestRef = doc(firestoreDb, 'balanceRequests', requestId);
         }
     </script>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-analytics.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, arrayUnion, updateDoc, arrayRemove, query, where, getDocs, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
-        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-storage.js";
+    <script>
 
-        // Make Firestore functions globally accessible
-        window.firestoreFunctions = {
-            doc,
-            setDoc,
-            getDoc,
-            collection,
-            arrayUnion,
-            updateDoc,
-            arrayRemove,
-            query,
-            where,
-            getDocs,
-            orderBy,
-            onSnapshot
-        };
+        window.db = null;
+        window.firestoreFunctions = null;
+        window.auth = null;
+        window.firebaseStorage = null;
+        window.onSnapshot = null;
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyAltz6ySnmdpHmZ1cYPpDCHEfoJSWiqscI",
-            authDomain: "pluxo-1e5a3.firebaseapp.com",
-            projectId: "pluxo-1e5a3",
-            storageBucket: "pluxo-1e5a3.firebasestorage.app",
-            messagingSenderId: "504034808974",
-            appId: "1:504034808974:web:6fb3fc4cffa39465da65df",
-            measurementId: "G-FLP8S5VLWE"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const storage = getStorage(app);
-        
-        // Make auth globally accessible
-        window.auth = auth;
-        window.db = db;
-        window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
-
-        // Make db globally accessible
-        window.db = db;
-        window.auth = auth;
-        window.firebaseStorage = storage;
-        window.onSnapshot = onSnapshot;
-
-        console.log("🔥 Firebase fully ready");
-
-        // ----------- USERNAME TO EMAIL FUNCTION -----------
         function usernameToEmail(username) {
             return `${username.toLowerCase()}@pluxo.app`;
         }
 
-        // ----------- SIGN UP FUNCTION -----------
-        // Bot webhook URL - change to your Railway URL for production
-        // For local testing: 'http://localhost:5000'
-        // For production: 'https://your-app.up.railway.app'
-        // (Already defined above)
-        
         async function notifyBotNewUser(username, email) {
             try {
+                await _pluxoApiDiscovery;
                 await fetch(`${BOT_WEBHOOK_URL}/api/register`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Webhook-Secret': WEBHOOK_SECRET
-                    },
+                    headers: { 'Content-Type': 'application/json', 'X-Webhook-Secret': WEBHOOK_SECRET },
                     body: JSON.stringify({ username, email })
                 });
-            } catch (err) {
-                console.log('Bot notification skipped:', err.message);
-            }
+            } catch (err) { console.log('Bot register notify:', err.message); }
         }
-        
-        async function signUp(username, password) {
-            const email = usernameToEmail(username);
+
+        async function signUp(username, email, password) {
+            await _pluxoApiDiscovery;
+            const u = (username || '').trim();
+            const em = (email || '').trim() || usernameToEmail(u);
+            if (!u) { showAnimatedPopup('Error', 'Enter username', 'error'); return; }
+            if (!password || password.length < 6) { showAnimatedPopup('Error', 'Password must be at least 6 characters', 'error'); return; }
             try {
-                const userCred = await createUserWithEmailAndPassword(auth, email, password);
-                console.log("Account created:", userCred.user.uid);
-                
-                // Store username in Firestore for login checking
-                await setDoc(doc(db, 'users', username.toLowerCase()), {
-                    username: username.toLowerCase(),
-                    email: email,
-                    createdAt: new Date().toISOString()
+                const response = await fetch(`${BOT_WEBHOOK_URL}/api/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: u.toLowerCase(), email: em, password })
                 });
-                
-                // Notify bot about new user registration
-                notifyBotNewUser(username.toLowerCase(), email);
-                
-                showAnimatedPopup('Success', 'Account created successfully!', 'success');
-            } catch (err) {
-                showAnimatedPopup('Error', err.message || 'Error creating account', 'error');
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    showAnimatedPopup('Error', data.error || 'Registration failed', 'error');
+                    return;
+                }
+                notifyBotNewUser(u.toLowerCase(), em);
+                const users = JSON.parse(localStorage.getItem('pluxoUsers')) || {};
+                users[u.toLowerCase()] = { email: em };
+                localStorage.setItem('pluxoUsers', JSON.stringify(users));
+                showAnimatedPopup('Success', 'Account created! You can sign in.', 'success');
+                closeRegister();
+                document.getElementById('username').value = u;
+            } catch (e) {
+                showAnimatedPopup('Error', e.message || 'Registration failed', 'error');
             }
         }
 
-        // ----------- LOGIN FUNCTION -----------
         async function login(username, password) {
-            const email = usernameToEmail(username);
+            await _pluxoApiDiscovery;
+            const u = (username || '').trim();
+            if (!u || !password) { showAnimatedPopup('Error', 'Enter username and password', 'error'); return; }
             try {
-                const userCred = await signInWithEmailAndPassword(auth, email, password);
-                // ✅ Login successful
-                console.log("Logged in:", userCred.user.uid);
-                
-                // Initialize user data
-                let existingData = JSON.parse(localStorage.getItem('pluxoUser')) || null;
-                userData = existingData || { 
-                    username: username, 
-                    balance: 0.00, 
-                    totalRecharge: 0.00, 
-                    cart: [],
-                    firebaseUID: userCred.user.uid // Store Firebase UID for Firestore operations
+                const response = await fetch(`${BOT_WEBHOOK_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: u.toLowerCase(), password })
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    showAnimatedPopup('Error', data.error || 'Invalid login', 'error');
+                    return;
+                }
+                userData = {
+                    username: data.username,
+                    balance: parseFloat(data.balance) || 0,
+                    totalRecharge: parseFloat(data.totalRecharge) || 0,
+                    cart: (typeof userData !== 'undefined' && userData && userData.cart) ? userData.cart : [],
+                    firebaseUID: null
                 };
-                
-                // Load user balance from Firestore if available
-                await loadUserBalanceFromFirestore();
-                userData.username = username; // Update username from Firebase
-                userData.firebaseUID = userCred.user.uid; // Always update Firebase UID
                 localStorage.setItem('pluxoUser', JSON.stringify(userData));
-                
-                // Load orders from Firestore
+                window.userData = userData;
+                await loadUserBalanceFromFirestore();
                 await loadOrdersFromFirestore();
-                
-                // Navigate to dashboard
-                if (typeof window.showDashboard === 'function') {
-                    window.showDashboard();
-                } else {
-                    // Fallback if showDashboard not available yet
-                    document.getElementById('loginPage').style.display = 'none';
-                    document.getElementById('dashboardPage').style.display = 'block';
-                    // Try to update UI if functions exist
+                if (typeof window.showDashboard === 'function') window.showDashboard();
+                else {
+                    const lp = document.getElementById('loginPage');
+                    const dp = document.getElementById('dashboardPage');
+                    if (lp) lp.style.display = 'none';
+                    if (dp) dp.style.display = 'block';
                     if (typeof updateUI === 'function') updateUI();
                     if (typeof updateCartDisplay === 'function') updateCartDisplay();
                 }
                 showAnimatedPopup('Success', 'Login successful!', 'success');
-            } catch (err) {
-                // ❌ Handle different error types
-                console.log("Login failed:", err.code, err.message);
-                
-                // Check error code
-                // Firebase v9+ uses 'auth/invalid-credential' for both user-not-found and wrong-password
-                if (err.code === 'auth/user-not-found') {
-                    // User doesn't exist
-                    showAnimatedPopup('Info', 'Please register account first', 'info');
-                } else if (err.code === 'auth/invalid-credential') {
-                    // Could be either user-not-found OR wrong-password
-                    // Check Firestore to see if username is registered
-                    try {
-                        const userDoc = await getDoc(doc(db, 'users', username.toLowerCase()));
-                        if (userDoc.exists()) {
-                            // Username exists in Firestore, so password was wrong
-                            showAnimatedPopup('Error', 'Invalid login credentials', 'error');
-                        } else {
-                            // Username not in Firestore, user doesn't exist
-                            showAnimatedPopup('Info', 'Please register account first', 'info');
-                        }
-                    } catch (checkErr) {
-                        // Error checking Firestore, default to invalid login
-                        console.log("Error checking user:", checkErr);
-                        showAnimatedPopup('Error', 'Invalid login credentials', 'error');
-                    }
-                } else if (err.code === 'auth/wrong-password') {
-                    showAnimatedPopup('Error', 'Invalid login credentials', 'error');
-                } else {
-                    // Generic error
-                    showAnimatedPopup('Error', 'Invalid login credentials', 'error');
-                }
-                return; // Make sure it stops here and doesn't proceed
+            } catch (e) {
+                showAnimatedPopup('Error', e.message || 'Login failed', 'error');
             }
         }
 
-        // ----------- HOOK TO HTML BUTTONS -----------
-        // Wait for DOM to be ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', attachFirebaseHandlers);
-        } else {
-            attachFirebaseHandlers();
-        }
-
-        function attachFirebaseHandlers() {
-            // Hook into login form
-            const loginForm = document.getElementById("loginForm");
+        function attachPluxoAuth() {
+            const loginForm = document.getElementById('loginForm');
             if (loginForm) {
                 loginForm.addEventListener('submit', (e) => {
                     e.preventDefault();
-                    const username = document.getElementById("username").value.trim();
-                    const password = document.getElementById("password").value;
-                    const captchaAns = document.getElementById("captchaAnswer").value.trim();
-                    
-                    // Validate inputs
+                    const username = document.getElementById('username').value.trim();
+                    const password = document.getElementById('password').value;
+                    const captchaAns = document.getElementById('captchaAnswer').value.trim();
                     if (!username) { showAnimatedPopup('Error', 'Enter username', 'error'); return; }
                     if (!password) { showAnimatedPopup('Error', 'Enter password', 'error'); return; }
-                    
-                    // Validate captcha if it exists
                     if (typeof captchaAnswer !== 'undefined' && parseInt(captchaAns) !== captchaAnswer) {
                         showAnimatedPopup('Error', 'Wrong captcha answer', 'error');
                         if (typeof genCaptcha === 'function') genCaptcha();
-                        document.getElementById("captchaAnswer").value = '';
+                        document.getElementById('captchaAnswer').value = '';
                         return;
                     }
-                    
                     login(username, password);
                 });
             }
-
-            // Hook into register form
-            const registerForm = document.getElementById("registerForm");
+            const registerForm = document.getElementById('registerForm');
             if (registerForm) {
                 registerForm.addEventListener('submit', (e) => {
                     e.preventDefault();
-                    const username = document.getElementById("regUser").value;
-                    const password = document.getElementById("regPass").value;
-                    signUp(username, password);
+                    const username = document.getElementById('regUser').value.trim();
+                    const email = document.getElementById('regEmail').value.trim();
+                    const password = document.getElementById('regPass').value;
+                    const passC = document.getElementById('regPassConfirm').value;
+                    if (password !== passC) { showAnimatedPopup('Error', 'Passwords do not match', 'error'); return; }
+                    signUp(username, email, password);
                 });
             }
-
-            // Also support direct button clicks if buttons exist
-            const loginBtn = document.getElementById("loginBtn");
-            if (loginBtn) {
-                loginBtn.onclick = () => {
-                    const username = document.getElementById("username").value;
-                    const password = document.getElementById("password").value;
-                    login(username, password);
-                };
-            }
-
-            const registerBtn = document.getElementById("registerBtn");
-            if (registerBtn) {
-                registerBtn.onclick = () => {
-                    const username = document.getElementById("username").value;
-                    const password = document.getElementById("password").value;
-                    signUp(username, password);
-                };
-            }
         }
-
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', attachPluxoAuth);
+        } else {
+            attachPluxoAuth();
+        }
         /* ==================== ENHANCED ANIMATION JAVASCRIPT ==================== */
         
         // Scroll Reveal Animation
@@ -11608,88 +10961,51 @@ const requestRef = doc(firestoreDb, 'balanceRequests', requestId);
             });
         }
 
-// Add shake animation to form fields on error
-        function shakeElement(element) {
-            element.classList.add('shake');
-            setTimeout(() => {
-                element.classList.remove('shake');
-            }, 500);
-        }
-
-        // Animated Popup System
-        function showAnimatedPopup(title, message, type = 'info') {
-            const overlay = document.getElementById('animatedPopupOverlay');
-            const popup = document.getElementById('animatedPopup');
-            const icon = document.getElementById('popupIcon');
-            const titleEl = document.getElementById('popupTitle');
-            const messageEl = document.getElementById('popupMessage');
-            
-            if (!overlay || !popup) return;
-            
-            // Set icon based on type
-            const icons = {
-                success: '✅',
-                error: '❌',
-                info: 'ℹ️',
-                warning: '⚠️'
-            };
-            
-            icon.textContent = icons[type] || '✨';
-            titleEl.textContent = title;
-            messageEl.textContent = message;
-            
-            // Update popup class
-            popup.className = 'animated-popup ' + type;
-            
-            // Show popup
-            overlay.style.display = 'flex';
-        }
-
-        function closeAnimatedPopup() {
-            const overlay = document.getElementById('animatedPopupOverlay');
-            if (overlay) {
-                overlay.style.display = 'none';
-            }
-        }
-
-        // Make globally accessible
-        window.showAnimatedPopup = showAnimatedPopup;
-        window.closeAnimatedPopup = closeAnimatedPopup;
-
-        // Proof Review Modal Functions
+        // Proof Review Modal (balance request images are data URLs; set via DOM, not inline HTML)
         function openProofReviewModal(requestId, proofUrl, requestDetails) {
+            const rd = requestDetails || {};
+            const safeProof = typeof proofUrl === 'string' && (
+                proofUrl.startsWith('data:image/') || proofUrl.startsWith('data:application/pdf')
+            );
+            const sid = sanitizeInput(String(requestId || ''));
+            const su = sanitizeInput(String(rd.username || ''));
+            const method = sanitizeInput(String(rd.paymentMethod || ''));
+            const amt = rd.amount != null ? sanitizeInput(String(rd.amount)) : '—';
+            let submitted = '—';
+            try {
+                submitted = sanitizeInput(new Date(rd.createdAt).toLocaleString());
+            } catch (e) { /* ignore */ }
+
             const modal = document.createElement('div');
             modal.className = 'modal-overlay active';
             modal.innerHTML = `
                 <div class="modal proof-review-modal">
-                    <button class="modal-close" onclick="closeProofReviewModal()">×</button>
+                    <button class="modal-close" type="button" aria-label="Close">×</button>
                     <h2>Review Payment Proof</h2>
                     <div class="proof-review-content">
-                        <div class="proof-image-container">
-                            <img src="${proofUrl}" alt="Payment Proof" onclick="window.open('${proofUrl}', '_blank')">
-                        </div>
+                        <div class="proof-image-container" id="proofReviewImageHost"></div>
                         <div class="proof-details">
                             <div class="request-details">
                                 <h3>Request Details</h3>
                                 <div class="detail-row">
                                     <span class="label">Request ID:</span>
-                                    <span class="value">${requestId}</span>
+                                    <span class="value">${sid}</span>
                                 </div>
                                 <div class="detail-row">
                                     <span class="label">Username:</span>
-                                    <span class="value">${requestDetails.username}</span>
+                                    <span class="value">${su}</span>
                                 </div>
                                 <div class="detail-row">
                                     <span class="label">Amount:</span>
-                                    <span class="value" style="color: var(--blue);">$${requestDetails.amount}</span>
+                                    <span class="value" style="color: var(--blue);">$${amt}</span>
                                 </div>
                                 <div class="detail-row">
                                     <span class="label">Method:</span>
-                                    <span class="value">${requestDetails.paymentMethod}</span>
+                                    <span class="value">${method}</span>
                                 </div>
                                 <div class="detail-row">
                                     <span class="label">Submitted:</span>
-                                    <span class="value">${new Date(requestDetails.createdAt).toLocaleString()}</span>
+                                    <span class="value">${submitted}</span>
                                 </div>
                             </div>
                             <div class="admin-comment-section">
@@ -11697,44 +11013,52 @@ const requestRef = doc(firestoreDb, 'balanceRequests', requestId);
                                 <textarea class="admin-comment" id="adminComment" placeholder="Add notes about this approval..."></textarea>
                             </div>
                             <div class="request-actions" style="margin-top: 20px;">
-                                <button class="btn-approve" onclick="approveWithProof('${requestId}', '${requestDetails.userId || ''}', ${requestDetails.amount}, '${requestDetails.username}')">Approve</button>
-                                <button class="btn-reject" onclick="rejectWithProof('${requestId}')">Reject</button>
+                                <button type="button" class="btn-approve" id="brModalApprove">Approve</button>
+                                <button type="button" class="btn-reject" id="brModalReject">Reject</button>
                             </div>
                         </div>
                     </div>
                 </div>
             `;
-            
             document.body.appendChild(modal);
+
+            const host = modal.querySelector('#proofReviewImageHost');
+            if (safeProof && host) {
+                const img = document.createElement('img');
+                img.alt = 'Payment Proof';
+                img.style.maxWidth = '100%';
+                img.style.cursor = 'pointer';
+                img.src = proofUrl;
+                img.addEventListener('click', () => window.open(proofUrl, '_blank'));
+                host.appendChild(img);
+            } else if (host) {
+                host.innerHTML = '<p style="color:var(--gray);">No proof uploaded.</p>';
+            }
+
+            const rid = String(requestId || '');
+            modal.querySelector('.modal-close').addEventListener('click', () => modal.remove());
+            modal.querySelector('#brModalApprove').addEventListener('click', () => approveWithProof(rid));
+            modal.querySelector('#brModalReject').addEventListener('click', () => rejectWithProof(rid));
         }
 
         function closeProofReviewModal() {
-            const modal = document.querySelector('.proof-review-modal');
-            if (modal) {
-                modal.remove();
-            }
+            document.querySelectorAll('.modal-overlay').forEach(el => {
+                if (el.querySelector('.proof-review-modal')) el.remove();
+            });
         }
 
-        // Enhanced approval with proof review
-        async function approveWithProof(requestId, userId, amount, username) {
-            const adminComment = document.getElementById('adminComment')?.value || '';
-            
-            // Close review modal
+        async function approveWithProof(requestId) {
+            const ta = document.getElementById('adminComment');
+            const adminComment = ta ? ta.value : '';
             closeProofReviewModal();
-            
-            // Call to original approve function with additional comment
-            approveBalanceRequest(requestId, userId, amount, username, adminComment);
+            await approveBalanceRequest(requestId, adminComment);
         }
 
-        // Enhanced rejection with proof review
         async function rejectWithProof(requestId) {
-            const adminComment = document.getElementById('adminComment')?.value || '';
-            
-            // Close review modal
+            const ta = document.getElementById('adminComment');
+            const adminComment = ta ? ta.value : '';
             closeProofReviewModal();
-            
-            // Call to original reject function with additional comment
-            rejectBalanceRequest(requestId, adminComment);
+            await rejectBalanceRequest(requestId, adminComment);
         }
 
         // Make functions globally accessible
@@ -11742,213 +11066,6 @@ const requestRef = doc(firestoreDb, 'balanceRequests', requestId);
         window.closeProofReviewModal = closeProofReviewModal;
         window.approveWithProof = approveWithProof;
         window.rejectWithProof = rejectWithProof;
-
-        // Auth state listener - auto-load balance when user is authenticated
-        onAuthStateChanged(auth, async (user) => {
-            if (!user) return;
-
-            // Ensure userData has firebaseUID
-            if (window.userData) {
-                window.userData.firebaseUID = user.uid;
-            }
-
-            // Check users collection first (by username) - this is where admin loads balance
-            let balanceFromUsers = null;
-            let balanceFromUserBalances = null;
-            
-            if (window.userData && window.userData.username && window.db && window.firestoreFunctions) {
-                try {
-                    const { collection, doc, getDoc } = window.firestoreFunctions;
-                    const normalized = window.userData.username.toLowerCase().trim();
-                    const usersRef = collection(window.db, 'users');
-                    const userDocRef = doc(usersRef, normalized);
-                    const userDoc = await getDoc(userDocRef);
-                    
-                    if (userDoc.exists()) {
-                        const userDataFromFirebase = userDoc.data();
-                        balanceFromUsers = {
-                            balance: parseFloat(userDataFromFirebase.balance || 0),
-                            totalRecharge: parseFloat(userDataFromFirebase.totalRecharge || 0)
-                        };
-                    }
-                } catch (err) {
-                    console.log('Could not check users collection:', err);
-                }
-            }
-            
-            // Also check userBalances collection (by UID)
-            if (window.db && window.firestoreFunctions) {
-                try {
-                    const { doc, getDoc, setDoc } = window.firestoreFunctions;
-                    const userRef = doc(window.db, "userBalances", user.uid);
-                    const snap = await getDoc(userRef);
-                    
-                    if (snap.exists()) {
-                        const balanceData = snap.data();
-                        balanceFromUserBalances = {
-                            balance: parseFloat(balanceData.balance || 0),
-                            totalRecharge: parseFloat(balanceData.totalRecharge || 0)
-                        };
-                    }
-                } catch (err) {
-                    console.log('Could not check userBalances collection:', err);
-                }
-            }
-            
-            // Use the higher balance (in case they're out of sync)
-            let finalBalance = 0;
-            let finalTotalRecharge = 0;
-            
-            if (balanceFromUsers && balanceFromUserBalances) {
-                // Both exist, use the higher balance
-                finalBalance = Math.max(balanceFromUsers.balance, balanceFromUserBalances.balance);
-                finalTotalRecharge = Math.max(balanceFromUsers.totalRecharge, balanceFromUserBalances.totalRecharge);
-            } else if (balanceFromUsers) {
-                finalBalance = balanceFromUsers.balance;
-                finalTotalRecharge = balanceFromUsers.totalRecharge;
-            } else if (balanceFromUserBalances) {
-                finalBalance = balanceFromUserBalances.balance;
-                finalTotalRecharge = balanceFromUserBalances.totalRecharge;
-            } else {
-                // Neither exists, use localStorage or 0
-                finalBalance = window.userData ? parseFloat(window.userData.balance || 0) : 0;
-                finalTotalRecharge = window.userData ? parseFloat(window.userData.totalRecharge || 0) : 0;
-            }
-            
-            // Update userBalances collection to ensure it exists and is synced
-            if (window.db && window.firestoreFunctions) {
-                try {
-                    const { doc, setDoc } = window.firestoreFunctions;
-                    const userRef = doc(window.db, "userBalances", user.uid);
-                    await setDoc(userRef, {
-                        username: window.userData ? window.userData.username.toLowerCase() : (user.email ? user.email.split('@')[0] : 'user'),
-                        balance: finalBalance,
-                        totalRecharge: finalTotalRecharge,
-                        updatedAt: new Date().toISOString(),
-                        createdAt: new Date().toISOString()
-                    }, { merge: true });
-                } catch (err) {
-                    console.log('Could not update userBalances:', err);
-                }
-            }
-            
-            // Update local userData
-            if (window.userData) {
-                window.userData.balance = finalBalance;
-                window.userData.totalRecharge = finalTotalRecharge;
-                window.userData.firebaseUID = user.uid;
-                
-                // Update localStorage with Firestore data
-                localStorage.setItem('pluxoUser', JSON.stringify(window.userData));
-                
-                // Update UI immediately
-                if (typeof updateUI === 'function') updateUI();
-            }
-            
-            // Set up real-time listener for balance updates (so user sees changes when admin updates balance)
-            if (window.userData && window.userData.username && window.db) {
-                const normalized = window.userData.username.toLowerCase().trim();
-                
-                // Listen to users collection (by username) - this is where admin loads balance
-                if (window.firestoreFunctions) {
-                    try {
-                        const { doc, onSnapshot } = window.firestoreFunctions;
-                        const usersRef = doc(window.db, 'users', normalized);
-                        const unsubscribeUsers = onSnapshot(usersRef, (docSnapshot) => {
-                            if (docSnapshot.exists()) {
-                            const userDataFromFirebase = docSnapshot.data();
-                            const newBalance = parseFloat(userDataFromFirebase.balance || 0);
-                            const newTotalRecharge = parseFloat(userDataFromFirebase.totalRecharge || 0);
-                            
-                            // Only update if balance actually changed (to avoid unnecessary updates)
-                            if (window.userData && (
-                                Math.abs((window.userData.balance || 0) - newBalance) > 0.01 ||
-                                Math.abs((window.userData.totalRecharge || 0) - newTotalRecharge) > 0.01
-                            )) {
-                                const oldBalance = window.userData.balance || 0;
-                                window.userData.balance = newBalance;
-                                window.userData.totalRecharge = newTotalRecharge;
-                                
-                                // Update localStorage
-                                localStorage.setItem('pluxoUser', JSON.stringify(window.userData));
-                                
-                                // Update UI with animation
-                                if (typeof updateUI === 'function') {
-                                    updateUI();
-                                    
-                                    // Show notification if balance increased
-                                    if (newBalance > oldBalance && typeof showAnimatedPopup === 'function') {
-                                        const increase = (newBalance - oldBalance).toFixed(2);
-                                        showAnimatedPopup('Balance Updated', `Your balance has been updated! +$${increase}`, 'success');
-                                    }
-                                }
-                            }
-                            }
-                        }, (error) => {
-                            console.log('Error listening to users collection:', error);
-                        });
-                        
-                        // Store unsubscribe function to clean up later if needed
-                        window.balanceListenerUnsubscribe = unsubscribeUsers;
-                    } catch (err) {
-                        console.log('Could not set up balance listener:', err);
-                    }
-                    
-                    // Also listen to userBalances collection (by UID) as backup
-                    try {
-                        const { doc: docFn, onSnapshot: onSnapshotFn } = window.firestoreFunctions;
-                        const userBalanceRef = docFn(window.db, 'userBalances', user.uid);
-                        const unsubscribeUserBalances = onSnapshotFn(userBalanceRef, (docSnapshot) => {
-                            if (docSnapshot.exists()) {
-                            const balanceData = docSnapshot.data();
-                            const newBalance = parseFloat(balanceData.balance || 0);
-                            const newTotalRecharge = parseFloat(balanceData.totalRecharge || 0);
-                            
-                            // Only update if balance actually changed
-                            if (window.userData && (
-                                Math.abs((window.userData.balance || 0) - newBalance) > 0.01 ||
-                                Math.abs((window.userData.totalRecharge || 0) - newTotalRecharge) > 0.01
-                            )) {
-                                const oldBalance = window.userData.balance || 0;
-                                window.userData.balance = newBalance;
-                                window.userData.totalRecharge = newTotalRecharge;
-                                
-                                // Update localStorage
-                                localStorage.setItem('pluxoUser', JSON.stringify(window.userData));
-                                
-                                // Update UI
-                                if (typeof updateUI === 'function') {
-                                    updateUI();
-                                    
-                                    // Show notification if balance increased
-                                    if (newBalance > oldBalance && typeof showAnimatedPopup === 'function') {
-                                        const increase = (newBalance - oldBalance).toFixed(2);
-                                        showAnimatedPopup('Balance Updated', `Your balance has been updated! +$${increase}`, 'success');
-                                    }
-                                }
-                            }
-                            }
-                        }, (error) => {
-                            console.log('Error listening to userBalances collection:', error);
-                        });
-                        
-                        // Store unsubscribe function
-                        if (window.balanceListenerUnsubscribe) {
-                            // If we already have one, combine them
-                            const oldUnsubscribe = window.balanceListenerUnsubscribe;
-                            window.balanceListenerUnsubscribe = () => {
-                                oldUnsubscribe();
-                                unsubscribeUserBalances();
-                            };
-                        } else {
-                            window.balanceListenerUnsubscribe = unsubscribeUserBalances;
-                        }
-                    } catch (err) {
-                        console.log('Could not set up userBalances listener:', err);
-                    }
-                }
-            }
-        });
     </script>
 </body>
 </html>
